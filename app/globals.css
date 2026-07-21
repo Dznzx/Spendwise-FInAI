@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap');
+@import "tailwindcss";
+
+:root {
+  --bg: #04060f;
+  --s1: #080c18;
+  --s2: #0d1220;
+  --border: rgba(255, 255, 255, 0.06);
+  --border2: rgba(255, 255, 255, 0.12);
+  --white: #eef0f8;
+  --muted: #4a5070;
+  --muted2: #7a82a0;
+  --blue: #5b7fff;
+  --purple: #8b5cf6;
+  --cyan: #22d3ee;
+  --green: #4ade80;
+  --red: #f87171;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: 'Inter', sans-serif;
+}
+
+.font-display { font-family: 'Syne', sans-serif; }
+.font-mono { font-family: 'IBM Plex Mono', monospace; }
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

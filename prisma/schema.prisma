@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
+  passwordHash  String
+  createdAt     DateTime       @default(now())
+  wishlistItems WishlistItem[]
+  purchases     Purchase[]
+  budgets       Budget[]
+}
+
+model Budget {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category     String
+  monthlyLimit Float
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, category])
+  @@index([userId])
+}
+
+model WishlistItem {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  price       Float
+  priority    Int        @default(1) // 1 = low, 2 = medium, 3 = high
+  savedAmount Float      @default(0)
+  achieved    Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  purchases   Purchase[]
+
+  @@index([userId])
+}
+
+model Purchase {
+  id                String        @id @default(cuid())
+  userId            String
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wishlistItemId    String?
+  wishlistItem      WishlistItem? @relation(fields: [wishlistItemId], references: [id], onDelete: SetNull)
+  additionalGoalIds String[]      @default([]) // extra goals beyond the primary one, for splitting savings across several goals
+  description       String
+  amount            Float
+  category          String        @default("miscellaneous")
+  source            String        @default("manual") // "manual" | "bank" (phase 2)
+  aiSummary         String?
+  decision          String        @default("pending") // "proceeded" | "cancelled" | "pending"
+  createdAt         DateTime      @default(now())
+
+  @@index([userId])
+}
