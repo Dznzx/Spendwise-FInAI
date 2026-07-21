@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
-import type { Prisma } from "@prisma/client";
 
 function csvEscape(val: string) {
   if (val.includes(",") || val.includes('"') || val.includes("\n")) {
@@ -8,10 +7,6 @@ function csvEscape(val: string) {
   }
   return val;
 }
-
-type PurchaseWithWishlistItem = Prisma.PurchaseGetPayload<{
-  include: { wishlistItem: { select: { name: true } } };
-}>;
 
 export async function GET() {
   const userId = await getCurrentUserId();
@@ -21,8 +16,10 @@ export async function GET() {
     include: { wishlistItem: { select: { name: true } } },
     orderBy: { createdAt: "desc" },
   });
+  type PurchaseRow = (typeof purchases)[number];
+
   const header = ["Date", "Description", "Amount", "Category", "Weighed Against", "Decision"];
-  const rows = purchases.map((p: PurchaseWithWishlistItem) => [
+  const rows = purchases.map((p: PurchaseRow) => [
     p.createdAt.toISOString().split("T")[0],
     csvEscape(p.description),
     p.amount.toString(),
