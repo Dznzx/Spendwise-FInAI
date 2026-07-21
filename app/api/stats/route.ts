@@ -16,19 +16,21 @@ export async function GET() {
     }),
     prisma.budget.findMany({ where: { userId } }),
   ]);
+  type PurchaseRow = (typeof decided)[number];
+  type BudgetRow = (typeof budgets)[number];
 
-  const thisMonth = decided.filter((p) => p.createdAt >= monthStart);
+  const thisMonth = decided.filter((p: PurchaseRow) => p.createdAt >= monthStart);
 
   const totalSaved = thisMonth
-    .filter((p) => p.decision === "cancelled")
-    .reduce((sum, p) => sum + p.amount, 0);
+    .filter((p: PurchaseRow) => p.decision === "cancelled")
+    .reduce((sum: number, p: PurchaseRow) => sum + p.amount, 0);
 
   const totalSpent = thisMonth
-    .filter((p) => p.decision === "proceeded")
-    .reduce((sum, p) => sum + p.amount, 0);
+    .filter((p: PurchaseRow) => p.decision === "proceeded")
+    .reduce((sum: number, p: PurchaseRow) => sum + p.amount, 0);
 
-  const skipCount = thisMonth.filter((p) => p.decision === "cancelled").length;
-  const spendCount = thisMonth.filter((p) => p.decision === "proceeded").length;
+  const skipCount = thisMonth.filter((p: PurchaseRow) => p.decision === "cancelled").length;
+  const spendCount = thisMonth.filter((p: PurchaseRow) => p.decision === "proceeded").length;
 
   // Streak looks at the full history, not just this month, since a streak
   // spanning a month boundary should still count.
@@ -45,9 +47,9 @@ export async function GET() {
     }
   }
 
-  const categoryBreakdown = Object.keys({ ...categoryTotals, ...Object.fromEntries(budgets.map((b) => [b.category, 0])) })
-    .map((category) => {
-      const budget = budgets.find((b) => b.category === category);
+  const categoryBreakdown = Object.keys({ ...categoryTotals, ...Object.fromEntries(budgets.map((b: BudgetRow) => [b.category, 0])) })
+    .map((category: string) => {
+      const budget = budgets.find((b: BudgetRow) => b.category === category);
       return {
         category,
         amount: categoryTotals[category] || 0,
