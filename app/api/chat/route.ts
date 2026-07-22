@@ -55,17 +55,23 @@ Respond with ONLY a raw JSON object, no markdown fences, no preamble, matching e
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 400, thinkingConfig: { thinkingBudget: 0 } },
+            generationConfig: { maxOutputTokens: 600, thinkingConfig: { thinkingBudget: 0 } },
           }),
         }
       );
       if (res.ok) {
         const data = await res.json();
         const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-        const clean = text.replace(/```json|```/g, "").trim();
-        const obj = JSON.parse(clean);
-        if (obj && (obj.intent === "log_purchase" || obj.intent === "chat")) {
-          parsed = obj;
+        const match = text.match(/\{[\s\S]*\}/);
+        if (!match) {
+          console.error("Gemini chat parse: no JSON object found in response:", text);
+        } else {
+          const obj = JSON.parse(match[0]);
+          if (obj && (obj.intent === "log_purchase" || obj.intent === "chat")) {
+            parsed = obj;
+          } else {
+            console.error("Gemini chat parse: unexpected shape:", obj);
+          }
         }
       } else {
         console.error("Gemini chat parse error:", await res.text());
