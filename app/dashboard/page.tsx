@@ -220,13 +220,16 @@ export default function DashboardPage() {
     const msg = chatInput.trim();
     if (!msg || chatLoading) return;
     setChatInput("");
+    const history = chatMessages
+      .filter((m) => m.id !== "welcome")
+      .map((m) => ({ role: m.role, text: m.text }));
     setChatMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "user", text: msg }]);
     setChatLoading(true);
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: msg }),
+        body: JSON.stringify({ message: msg, history }),
       });
       const data = await res.json();
       if (data.intent === "log_purchase" && data.purchase) {
