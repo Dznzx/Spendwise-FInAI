@@ -53,7 +53,7 @@ Respond with ONLY a raw JSON object, no markdown fences, no preamble, matching e
       const response = await ai.models.generateContent({
         model: "gemini-3.5-flash-lite",
         contents: prompt,
-        config: { maxOutputTokens: 600, thinkingConfig: { thinkingBudget: 0 } },
+        config: { maxOutputTokens: 600 },
       });
       const text = response.text ?? "";
       const match = text.match(/\{[\s\S]*\}/);
