@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "@/lib/auth";
 import { generateTradeoffSummary } from "@/lib/ai";
@@ -48,33 +49,23 @@ Respond with ONLY a raw JSON object, no markdown fences, no preamble, matching e
 {"intent":"log_purchase" or "chat","description":"<short purchase description, empty string if intent is chat>","amount":<number, 0 if intent is chat>,"category":"<one of the valid categories, best guess, miscellaneous if unsure>","goalNames":[<any of the user's exact goal names this purchase should be weighed against, empty array if none or unclear>],"reply":"<if intent is chat: a short, warm, helpful reply under 30 words; if intent is log_purchase: empty string>"}`;
 
     try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 600, thinkingConfig: { thinkingBudget: 0 } },
-          }),
-        }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-        const match = text.match(/\{[\s\S]*\}/);
-        if (!match) {
-          console.error("Gemini chat parse: no JSON object found in response:", text);
-        } else {
-          const obj = JSON.parse(match[0]);
-          if (obj && (obj.intent === "log_purchase" || obj.intent === "chat")) {
-            parsed = obj;
-          } else {
-            console.error("Gemini chat parse: unexpected shape:", obj);
-          }
-        }
+      const ai = new GoogleGenAI({ apiKey });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-lite",
+        contents: prompt,
+        config: { maxOutputTokens: 600, thinkingConfig: { thinkingBudget: 0 } },
+      });
+      const text = response.text ?? "";
+      const match = text.match(/\{[\s\S]*\}/);
+      if (!match) {
+        console.error("Gemini chat parse: no JSON object found in response:", text);
       } else {
-        console.error("Gemini chat parse error:", await res.text());
+        const obj = JSON.parse(match[0]);
+        if (obj && (obj.intent === "log_purchase" || obj.intent === "chat")) {
+          parsed = obj;
+        } else {
+          console.error("Gemini chat parse: unexpected shape:", obj);
+        }
       }
     } catch (err) {
       console.error("Gemini chat parse failed:", err);
