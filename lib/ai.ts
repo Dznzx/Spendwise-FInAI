@@ -34,7 +34,7 @@ Write a short, friendly, non-judgmental summary (under 40 words) of what this pu
   try {
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-3.5-flash-lite",
       contents: prompt,
       config: { maxOutputTokens: 500, thinkingConfig: { thinkingBudget: 0 } },
     });
