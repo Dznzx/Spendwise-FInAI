@@ -15,14 +15,17 @@ type ParsedIntent = {
   reply?: string;
 };
 
+type HistoryTurn = { role: "user" | "ai"; text: string };
+
 export async function POST(req: Request) {
   const userId = await getCurrentUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { message } = await req.json();
+  const { message, history } = await req.json();
   if (!message || typeof message !== "string" || !message.trim()) {
     return NextResponse.json({ error: "Missing message" }, { status: 400 });
   }
+  const priorTurns: HistoryTurn[] = Array.isArray(history) ? history.slice(-10) : [];
 
   const goals = await prisma.wishlistItem.findMany({
     where: { userId, achieved: false },
@@ -40,13 +43,19 @@ export async function POST(req: Request) {
   };
 
   if (apiKey && apiKey !== "your-gemini-key-here") {
+    const transcript = priorTurns
+      .map((t) => `${t.role === "user" ? "User" : "You"}: ${t.text.replace(/"/g, "'")}`)
+      .join("\n");
+
     const prompt = `You are SpendWise's AI spending advisor, embedded in a chat UI. The user's active savings goals: ${goalList}. Valid spending categories: ${CATEGORIES.join(", ")}.
+
+${transcript ? `Conversation so far:\n${transcript}\n` : ""}
 The user just said: "${message.replace(/"/g, "'")}"
 
-Decide if this is them describing a purchase they're about to make or have just made (intent "log_purchase") or something else — a question, greeting, or general chat (intent "chat").
+Read the WHOLE conversation, not just the last message — the item, price, or goal may have been mentioned a few turns back. Be decisive: as soon as you can determine what they're buying AND a price (from anywhere in the conversation), treat this as intent "log_purchase" — do not ask extra confirming questions like "are you sure?" first, and do not keep chatting once you have both pieces of information. Only use intent "chat" if the price or item genuinely still isn't known after considering the full conversation, or if this is a general question/greeting unrelated to a specific purchase.
 
 Respond with ONLY a raw JSON object, no markdown fences, no preamble, matching exactly this shape:
-{"intent":"log_purchase" or "chat","description":"<short purchase description, empty string if intent is chat>","amount":<number, 0 if intent is chat>,"category":"<one of the valid categories, best guess, miscellaneous if unsure>","goalNames":[<any of the user's exact goal names this purchase should be weighed against, empty array if none or unclear>],"reply":"<if intent is chat: a short, warm, helpful reply under 30 words; if intent is log_purchase: empty string>"}`;
+{"intent":"log_purchase" or "chat","description":"<short purchase description, empty string if intent is chat>","amount":<number, 0 if intent is chat>,"category":"<one of the valid categories, best guess, miscellaneous if unsure>","goalNames":[<any of the user's exact goal names this purchase should be weighed against, empty array if none or unclear>],"reply":"<if intent is chat: a short, warm, helpful reply under 30 words that moves the conversation toward a decision; if intent is log_purchase: empty string>"}`;
 
     try {
       const ai = new GoogleGenAI({ apiKey });
